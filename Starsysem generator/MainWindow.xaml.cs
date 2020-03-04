@@ -9,6 +9,7 @@ using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Media3D;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
@@ -24,47 +25,71 @@ namespace Starsysem_generator
         public MainWindow()
         {
             InitializeComponent();
-            
-            Canvas.Camera = new PerspectiveCamera()
+
+            viewport.Camera = new PerspectiveCamera()
             {
-                Position = new Point3D(0, 0, 2),
-                LookDirection = new Vector3D(0, 0, -1),
-                FieldOfView = 60
+                UpDirection = new Vector3D(0, 0, 1),
+                LookDirection = new Vector3D(1, -1, -1),
+                Position = new Point3D(-4, 4, 4)
             };
 
-            ModelVisual3D modelVisual3D = new ModelVisual3D();
             Model3DGroup model3DGroup = new Model3DGroup();
-            GeometryModel3D geometry3D = new GeometryModel3D();
-            MeshGeometry3D meshGeometry3D = new MeshGeometry3D();
-
-            model3DGroup.Children.Add(new PointLight()
+            model3DGroup.Children.Add(new DirectionalLight()
             {
-                Position = new Point3D(0, 0, 0),
+                Direction = new Vector3D(1, -1, -1),
                 Color = Colors.White,
             });
 
-            meshGeometry3D.Normals = new Vector3DCollection()
+            model3DGroup.Children.Add(new GeometryModel3D()
             {
-                new Vector3D(0, 0, 1),
-                new Vector3D(0, 0, 1),
-                new Vector3D(0, 0, 1),
-                new Vector3D(0, 0, 1),
-                new Vector3D(0, 0, 1),
-                new Vector3D(0, 0, 1)
-            };
+                Geometry = new MeshGeometry3D()
+                {
+                    Positions = new Point3DCollection()
+                    {
+                        new Point3D(-1, -1, -1),
+                        new Point3D(1, -1, -1),
+                        new Point3D(1, 1, -1),
+                        new Point3D(-1, 1, -1),
+                        new Point3D(-1, -1, 1),
+                        new Point3D(1, -1, 1),
+                        new Point3D(1, 1, 1),
+                        new Point3D(-1, 1, 1)
+                    },
 
-            meshGeometry3D.Positions = new Point3DCollection()
+                    TriangleIndices = new Int32Collection()
+                    {
+                        0, 1, 3, 1, 2, 3,
+                        0, 4, 3, 4, 7, 3,
+                        4, 6, 7, 4, 5, 6,
+                        0, 4, 1, 1, 4, 5,
+                        1, 2, 6, 6, 5, 1,
+                        2, 3, 7, 7, 6, 2
+                    },
+
+                    Normals = new Vector3DCollection()
+                    {
+                        new Vector3D()
+                    },
+                },
+
+                Material = new DiffuseMaterial()
+                {
+                    Brush = Brushes.Red
+                },
+
+                Transform = new RotateTransform3D()
+                {
+                    Rotation = new AxisAngleRotation3D()
+                    {
+                        Axis = new Vector3D(0, 0, 1),
+                    },
+                }
+            });
+
+            viewport.Children.Add(new ModelVisual3D()
             {
-                new Point3D(-1, -1, 0),
-                new Point3D(-1, 1, 0),
-                new Point3D(1, -1, 0),
-                new Point3D(1, 1, 0)
-            };
-
-            geometry3D.Geometry = meshGeometry3D;
-            model3DGroup.Children.Add(geometry3D);
-            modelVisual3D.Content = model3DGroup;
-            Canvas.Children.Add(modelVisual3D);
+                Content = model3DGroup,
+            });
         }
     }
 }

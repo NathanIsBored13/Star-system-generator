@@ -5,19 +5,18 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Starsysem_generator"
         mc:Ignorable="d"
-        Title="MainWindow"
-        
-        Background="Gray"
-        Width="600"
-        Height="600">
-    <Grid>
-        <StackPanel Margin="10" Orientation="Horizontal">
-            <Viewbox Margin="0, 0, 5, 0" Width="600" Height="600" >
-                <Viewport3D x:Name="Canvas"/>
-            </Viewbox>
-            <StackPanel Margin="5, 0, 0, 0" Background="DimGray">
-                <Label FontWeight="ExtraBold" FontSize="20" Content="Starsystem Generator"/>
-            </StackPanel>
+        Title="StarSystem"
+        SizeToContent="WidthAndHeight"
+        ResizeMode="NoResize"
+        Background="Black">
+    <DockPanel Margin="10">
+        <StackPanel DockPanel.Dock="Right" Margin="5, 0, 0, 0" Background="DimGray">
+            <Label FontWeight="ExtraBold" FontSize="20" Content="Starsystem Generator"/>
         </StackPanel>
-    </Grid>
+        <Canvas DockPanel.Dock="Right" Margin="0, 0, 5, 0" MinWidth="500" MinHeight="500" Background="DimGray" x:Name="Canvas">
+            <Grid Width="{Binding ElementName=Canvas, Path=ActualWidth}" Height="{Binding ElementName=Canvas, Path=ActualHeight}">
+                <Viewport3D x:Name="viewport"/>
+            </Grid>
+        </Canvas>
+    </DockPanel>
 </Window>
