@@ -24,19 +24,47 @@ namespace Starsysem_generator
         public MainWindow()
         {
             InitializeComponent();
+            
             Canvas.Camera = new PerspectiveCamera()
             {
                 Position = new Point3D(0, 0, 2),
                 LookDirection = new Vector3D(0, 0, -1),
                 FieldOfView = 60
             };
+
+            ModelVisual3D modelVisual3D = new ModelVisual3D();
             Model3DGroup model3DGroup = new Model3DGroup();
+            GeometryModel3D geometry3D = new GeometryModel3D();
             MeshGeometry3D meshGeometry3D = new MeshGeometry3D();
+
+            model3DGroup.Children.Add(new PointLight()
+            {
+                Position = new Point3D(0, 0, 0),
+                Color = Colors.White,
+            });
+
+            meshGeometry3D.Normals = new Vector3DCollection()
+            {
+                new Vector3D(0, 0, 1),
+                new Vector3D(0, 0, 1),
+                new Vector3D(0, 0, 1),
+                new Vector3D(0, 0, 1),
+                new Vector3D(0, 0, 1),
+                new Vector3D(0, 0, 1)
+            };
+
             meshGeometry3D.Positions = new Point3DCollection()
             {
-                new Point3D(-1, -1, -1),
-                new Point3D(1, 1, 1)
+                new Point3D(-1, -1, 0),
+                new Point3D(-1, 1, 0),
+                new Point3D(1, -1, 0),
+                new Point3D(1, 1, 0)
             };
+
+            geometry3D.Geometry = meshGeometry3D;
+            model3DGroup.Children.Add(geometry3D);
+            modelVisual3D.Content = model3DGroup;
+            Canvas.Children.Add(modelVisual3D);
         }
     }
 }
