@@ -30,7 +30,9 @@ namespace Starsysem_generator
             {
                 UpDirection = new Vector3D(0, 0, 1),
                 LookDirection = new Vector3D(1, -1, -1),
-                Position = new Point3D(-4, 4, 4)
+                Position = new Point3D(-4, 4, 4),
+                FieldOfView = 100
+                
             };
 
             Model3DGroup model3DGroup = new Model3DGroup();
@@ -40,6 +42,13 @@ namespace Starsysem_generator
                 Color = Colors.White,
             });
 
+            Star star = new Star(new Point3D(1, 0, 0), 0.5, 50, 50);
+            model3DGroup.Children.Add(star.GetGeometry());
+
+            star = new Star(new Point3D(-1, 0, 0), 0.5, 50, 50);
+            model3DGroup.Children.Add(star.GetGeometry());
+
+            /*
             model3DGroup.Children.Add(new GeometryModel3D()
             {
                 Geometry = new MeshGeometry3D()
@@ -85,6 +94,7 @@ namespace Starsysem_generator
                     },
                 }
             });
+            */
 
             viewport.Children.Add(new ModelVisual3D()
             {
