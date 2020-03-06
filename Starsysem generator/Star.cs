@@ -81,11 +81,33 @@ namespace Starsysem_generator
                 r0 = r1;
             }
 
+            meshGeometry.TextureCoordinates = new PointCollection
+            {
+                new Point(0, 1)
+
+
+            };
+
             geometryModel3D.Geometry = meshGeometry;
+
             geometryModel3D.Material = new DiffuseMaterial()
             {
                 Brush = Brushes.Red
             };
+            
+            /*geometryModel3D.Material = new DiffuseMaterial()
+            {
+                Brush = new RadialGradientBrush
+                {
+                    Center = meshGeometry.TextureCoordinates[0],
+                    GradientStops = new GradientStopCollection()
+                    {
+                        new GradientStop(Colors.Blue, 0),
+                        new GradientStop(Colors.Red, 1)
+                    },
+                    ColorInterpolationMode = ColorInterpolationMode.SRgbLinearInterpolation
+                }
+            };*/
         }
 
         private void AddTriangle(MeshGeometry3D mesh, Point3D point1, Point3D point2, Point3D point3)

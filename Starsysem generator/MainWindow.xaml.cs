@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -22,6 +23,13 @@ namespace Starsysem_generator
     /// </summary>
     public partial class MainWindow : Window
     {
+        Model3DGroup model3DGroup;
+        DependencyProperty dependencyProperty = DependencyProperty.Register("Angle", typeof(double), typeof(Model3DGroup));
+        private double angle
+        {
+            get { return (double)GetValue(dependencyProperty); }
+            set { SetValue(dependencyProperty, value); }
+        }
         public MainWindow()
         {
             InitializeComponent();
@@ -29,27 +37,27 @@ namespace Starsysem_generator
             viewport.Camera = new PerspectiveCamera()
             {
                 UpDirection = new Vector3D(0, 0, 1),
-                LookDirection = new Vector3D(1, -1, -1),
-                Position = new Point3D(-4, 4, 4),
-                FieldOfView = 100
-                
+                LookDirection = new Vector3D(0, -5, -5),
+                Position = new Point3D(0, 5, 5),
+                FieldOfView = 60
             };
 
-            Model3DGroup model3DGroup = new Model3DGroup();
+            model3DGroup = new Model3DGroup();
             model3DGroup.Children.Add(new DirectionalLight()
             {
                 Direction = new Vector3D(1, -1, -1),
                 Color = Colors.White,
             });
 
-            Star star = new Star(new Point3D(1, 0, 0), 0.5, 50, 50);
-            model3DGroup.Children.Add(star.GetGeometry());
+            //Star star = new Star(new Point3D(1, 0, 0), 0.5, 50, 50);
+            //model3DGroup.Children.Add(star.GetGeometry());
 
-            star = new Star(new Point3D(-1, 0, 0), 0.5, 50, 50);
-            model3DGroup.Children.Add(star.GetGeometry());
+            //star = new Star(new Point3D(-1, 0, 0), 0.5, 50, 50);
+            //model3DGroup.Children.Add(star.GetGeometry());
 
-            /*
-            model3DGroup.Children.Add(new GeometryModel3D()
+            RotateTransform3D rotateTransform3D = new RotateTransform3D();
+
+            GeometryModel3D geometryModel3D = new GeometryModel3D()
             {
                 Geometry = new MeshGeometry3D()
                 {
@@ -73,12 +81,7 @@ namespace Starsysem_generator
                         0, 4, 1, 1, 4, 5,
                         1, 2, 6, 6, 5, 1,
                         2, 3, 7, 7, 6, 2
-                    },
-
-                    Normals = new Vector3DCollection()
-                    {
-                        new Vector3D()
-                    },
+                    }
                 },
 
                 Material = new DiffuseMaterial()
@@ -86,20 +89,49 @@ namespace Starsysem_generator
                     Brush = Brushes.Red
                 },
 
-                Transform = new RotateTransform3D()
+                Transform = rotateTransform3D
+            };
+
+            Rotation3DAnimation rotation3DAnimation = new Rotation3DAnimation()
+            {
+                Duration = TimeSpan.FromSeconds(5),
+                RepeatBehavior = RepeatBehavior.Forever,
+                To = new AxisAngleRotation3D()
                 {
-                    Rotation = new AxisAngleRotation3D()
-                    {
-                        Axis = new Vector3D(0, 0, 1),
-                    },
-                }
-            });
-            */
+                    Axis = new Vector3D(0, 0, 1),
+                    Angle = 0
+                },
+                From = new AxisAngleRotation3D()
+                {
+                    Axis = new Vector3D(0, 0, 1),
+                    Angle = 180
+                },
+                
+            };
+
+            Storyboard.SetTarget(rotation3DAnimation, geometryModel3D);
+            Storyboard.SetTargetProperty(rotation3DAnimation, new PropertyPath(RotateTransform3D.RotationProperty));
+
+            Storyboard storyboard = new Storyboard();
+            storyboard.Children.Add(rotation3DAnimation);
+
+            storyboard.Begin();
+
+            model3DGroup.Children.Add(geometryModel3D);
 
             viewport.Children.Add(new ModelVisual3D()
             {
                 Content = model3DGroup,
             });
+
+            model3DGroup.Children.Last().Transform = new RotateTransform3D()
+            {
+                Rotation = new AxisAngleRotation3D()
+                {
+                    Axis = new Vector3D(0, 0, 1),
+                    Angle = 60
+                },
+            };
         }
     }
 }
