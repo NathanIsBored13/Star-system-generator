@@ -23,115 +23,131 @@ namespace Starsysem_generator
     /// </summary>
     public partial class MainWindow : Window
     {
-        Model3DGroup model3DGroup;
-        DependencyProperty dependencyProperty = DependencyProperty.Register("Angle", typeof(double), typeof(Model3DGroup));
-        private double angle
+        Timer passiveRotate;
+        Timer MouseMovedCheck;
+        AxisAngleRotation3D[] axisAngleRotation3Ds = new AxisAngleRotation3D[]
         {
-            get { return (double)GetValue(dependencyProperty); }
-            set { SetValue(dependencyProperty, value); }
-        }
+            new AxisAngleRotation3D()
+            {
+                Axis = new Vector3D(-1, 0, 0)
+            },
+            new AxisAngleRotation3D()
+            {
+                Axis = new Vector3D(0, 0, -1)
+            }
+        };
+        Point buffer;
         public MainWindow()
         {
             InitializeComponent();
 
+            Canvas.MouseDown += Canvas_MouseDown;
+            Canvas.MouseWheel += Canvas_MouseWheel;
+
+            passiveRotate = new Timer(50);
+            passiveRotate.Elapsed += PassiveRotate_Elapsed;
+
+            MouseMovedCheck = new Timer(10);
+            MouseMovedCheck.Elapsed += MouseMovedoveCheck_Elapsed;
+
+            Transform3DGroup transform3DGroup = new Transform3DGroup();
+            transform3DGroup.Children.Add(new RotateTransform3D()
+            {
+                Rotation = axisAngleRotation3Ds[0]
+            });
+            transform3DGroup.Children.Add(new RotateTransform3D()
+            {
+                Rotation = axisAngleRotation3Ds[1]
+            });
+
             viewport.Camera = new PerspectiveCamera()
             {
                 UpDirection = new Vector3D(0, 0, 1),
-                LookDirection = new Vector3D(0, -5, -5),
-                Position = new Point3D(0, 5, 5),
-                FieldOfView = 60
+                LookDirection = new Vector3D(0, -20, -50),
+                Position = new Point3D(0, 20, 50),
+                FieldOfView = 100,
+                Transform = transform3DGroup
             };
 
-            model3DGroup = new Model3DGroup();
+            Model3DGroup model3DGroup = new Model3DGroup();
+
             model3DGroup.Children.Add(new DirectionalLight()
             {
-                Direction = new Vector3D(1, -1, -1),
+                Direction = new Vector3D(0, 0, -1),
                 Color = Colors.White,
             });
 
-            //Star star = new Star(new Point3D(1, 0, 0), 0.5, 50, 50);
-            //model3DGroup.Children.Add(star.GetGeometry());
-
-            //star = new Star(new Point3D(-1, 0, 0), 0.5, 50, 50);
-            //model3DGroup.Children.Add(star.GetGeometry());
-
-            RotateTransform3D rotateTransform3D = new RotateTransform3D();
-
-            GeometryModel3D geometryModel3D = new GeometryModel3D()
+            model3DGroup.Children.Add(new DirectionalLight()
             {
-                Geometry = new MeshGeometry3D()
-                {
-                    Positions = new Point3DCollection()
-                    {
-                        new Point3D(-1, -1, -1),
-                        new Point3D(1, -1, -1),
-                        new Point3D(1, 1, -1),
-                        new Point3D(-1, 1, -1),
-                        new Point3D(-1, -1, 1),
-                        new Point3D(1, -1, 1),
-                        new Point3D(1, 1, 1),
-                        new Point3D(-1, 1, 1)
-                    },
+                Direction = new Vector3D(0, 0, 1),
+                Color = Colors.White,
+            });
 
-                    TriangleIndices = new Int32Collection()
-                    {
-                        0, 1, 3, 1, 2, 3,
-                        0, 4, 3, 4, 7, 3,
-                        4, 6, 7, 4, 5, 6,
-                        0, 4, 1, 1, 4, 5,
-                        1, 2, 6, 6, 5, 1,
-                        2, 3, 7, 7, 6, 2
-                    }
-                },
-
-                Material = new DiffuseMaterial()
-                {
-                    Brush = Brushes.Red
-                },
-
-                Transform = rotateTransform3D
-            };
-
-            Rotation3DAnimation rotation3DAnimation = new Rotation3DAnimation()
+            Random random = new Random();
+            for (int i = 0; i < 1000; i++)
             {
-                Duration = TimeSpan.FromSeconds(5),
-                RepeatBehavior = RepeatBehavior.Forever,
-                To = new AxisAngleRotation3D()
-                {
-                    Axis = new Vector3D(0, 0, 1),
-                    Angle = 0
-                },
-                From = new AxisAngleRotation3D()
-                {
-                    Axis = new Vector3D(0, 0, 1),
-                    Angle = 180
-                },
-                
-            };
-
-            Storyboard.SetTarget(rotation3DAnimation, geometryModel3D);
-            Storyboard.SetTargetProperty(rotation3DAnimation, new PropertyPath(RotateTransform3D.RotationProperty));
-
-            Storyboard storyboard = new Storyboard();
-            storyboard.Children.Add(rotation3DAnimation);
-
-            storyboard.Begin();
-
-            model3DGroup.Children.Add(geometryModel3D);
+                double r = 80 * random.NextDouble() + 20;
+                double a = 2 * Math.PI * random.NextDouble() - Math.PI;
+                Star star = new Star(new Point3D(r * Math.Sin(a), r * Math.Cos(a), 10 * random.NextDouble() - 5), 2 * random.NextDouble() - 1);
+                model3DGroup.Children.Add(star.GetGeometry());
+            }
 
             viewport.Children.Add(new ModelVisual3D()
             {
                 Content = model3DGroup,
             });
+            passiveRotate.Start();
+        }
 
-            model3DGroup.Children.Last().Transform = new RotateTransform3D()
+        private void PassiveRotate_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            Dispatcher.Invoke(() => axisAngleRotation3Ds[1].Angle += 0.05);
+        }
+
+        private void MouseMovedoveCheck_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
             {
-                Rotation = new AxisAngleRotation3D()
+                if (Mouse.LeftButton == MouseButtonState.Pressed)
                 {
-                    Axis = new Vector3D(0, 0, 1),
-                    Angle = 60
-                },
-            };
+                    PerspectiveCamera perspectiveCamera = (PerspectiveCamera)viewport.Camera;
+                    double r = Math.Sqrt(Math.Pow(perspectiveCamera.Position.X, 2) + Math.Pow(perspectiveCamera.Position.Y, 2) + Math.Pow(perspectiveCamera.Position.Z, 2));
+                    axisAngleRotation3Ds[1].Angle += Mouse.GetPosition(viewport).X - buffer.X;
+                    axisAngleRotation3Ds[0].Angle -= Mouse.GetPosition(viewport).Y - buffer.Y;
+                    buffer = Mouse.GetPosition(viewport);
+                }
+                else
+                {
+                    MouseMovedCheck.Stop();
+                    passiveRotate.Start();
+                }
+            });
+        }
+
+        private void Canvas_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                passiveRotate.Stop();
+                buffer = e.GetPosition(viewport);
+                MouseMovedCheck.Start();
+            });
+        }
+
+        private void Canvas_MouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                PerspectiveCamera perspectiveCamera = (PerspectiveCamera)viewport.Camera;
+                double r = Math.Sqrt(Math.Pow(perspectiveCamera.Position.X, 2) + Math.Pow(perspectiveCamera.Position.Y, 2) + Math.Pow(perspectiveCamera.Position.Z, 2));
+                double ratio = r / (r + e.Delta / 100);
+                ((PerspectiveCamera)viewport.Camera).Position = new Point3D(ratio * perspectiveCamera.Position.X, ratio * perspectiveCamera.Position.Y, ratio * perspectiveCamera.Position.Z);
+            });
+        }
+
+        private void Window_Closed(object sender, EventArgs e)
+        {
+            Dispatcher.Invoke(() => passiveRotate.Stop());
         }
     }
 }
