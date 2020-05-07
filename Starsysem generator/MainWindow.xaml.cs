@@ -23,9 +23,14 @@ namespace Starsysem_generator
     /// </summary>
     public partial class MainWindow : Window
     {
-        Timer passiveRotate;
-        Timer MouseMovedCheck;
-        AxisAngleRotation3D[] axisAngleRotation3Ds = new AxisAngleRotation3D[]
+        readonly Galexy galexy = new Galexy(1000);
+
+        Point mouseLast;
+        bool drag;
+
+        readonly Timer passiveRotate;
+
+        readonly AxisAngleRotation3D[] axisAngleRotation3Ds = new AxisAngleRotation3D[]
         {
             new AxisAngleRotation3D()
             {
@@ -36,29 +41,20 @@ namespace Starsysem_generator
                 Axis = new Vector3D(0, 0, -1)
             }
         };
-        Point buffer;
+
+        GeometryModel3D highlighted;
+
         public MainWindow()
         {
             InitializeComponent();
 
             Canvas.MouseDown += Canvas_MouseDown;
+            Canvas.MouseMove += Canvas_MouseMove;
+            Canvas.MouseUp += Canvas_MouseUp;
             Canvas.MouseWheel += Canvas_MouseWheel;
 
             passiveRotate = new Timer(50);
             passiveRotate.Elapsed += PassiveRotate_Elapsed;
-
-            MouseMovedCheck = new Timer(10);
-            MouseMovedCheck.Elapsed += MouseMovedoveCheck_Elapsed;
-
-            Transform3DGroup transform3DGroup = new Transform3DGroup();
-            transform3DGroup.Children.Add(new RotateTransform3D()
-            {
-                Rotation = axisAngleRotation3Ds[0]
-            });
-            transform3DGroup.Children.Add(new RotateTransform3D()
-            {
-                Rotation = axisAngleRotation3Ds[1]
-            });
 
             viewport.Camera = new PerspectiveCamera()
             {
@@ -66,88 +62,123 @@ namespace Starsysem_generator
                 LookDirection = new Vector3D(0, -20, -50),
                 Position = new Point3D(0, 20, 50),
                 FieldOfView = 100,
-                Transform = transform3DGroup
+                Transform = new Transform3DGroup()
+                {
+                    Children = new Transform3DCollection()
+                    {
+                        new RotateTransform3D()
+                        {
+                            Rotation = axisAngleRotation3Ds[0]
+                        },
+
+                        new RotateTransform3D()
+                        {
+                            Rotation = axisAngleRotation3Ds[1]
+                        }
+                    }
+                }
             };
-
-            Model3DGroup model3DGroup = new Model3DGroup();
-
-            model3DGroup.Children.Add(new DirectionalLight()
-            {
-                Direction = new Vector3D(0, 0, -1),
-                Color = Colors.White,
-            });
-
-            model3DGroup.Children.Add(new DirectionalLight()
-            {
-                Direction = new Vector3D(0, 0, 1),
-                Color = Colors.White,
-            });
-
-            Random random = new Random();
-            for (int i = 0; i < 1000; i++)
-            {
-                double r = 80 * random.NextDouble() + 20;
-                double a = 2 * Math.PI * random.NextDouble() - Math.PI;
-                Star star = new Star(new Point3D(r * Math.Sin(a), r * Math.Cos(a), 10 * random.NextDouble() - 5), 2 * random.NextDouble() - 1);
-                model3DGroup.Children.Add(star.GetGeometry());
-            }
 
             viewport.Children.Add(new ModelVisual3D()
             {
-                Content = model3DGroup,
+                Content = new Model3DGroup()
+                {
+                    Children = new Model3DCollection()
+                    {            
+                        new AmbientLight()
+                        {
+                            Color = Colors.White
+                        },
+                        new PointLight()
+                        {
+                            Position = new Point3D(0, 0, 0),
+                            Color = Colors.Red,
+                        }
+                    }
+                }
+            });
+
+            viewport.Children.Add(new ModelVisual3D()
+            {
+                Content = galexy.GetModel()
             });
             passiveRotate.Start();
         }
 
         private void PassiveRotate_Elapsed(object sender, ElapsedEventArgs e)
         {
-            Dispatcher.Invoke(() => axisAngleRotation3Ds[1].Angle += 0.05);
-        }
-
-        private void MouseMovedoveCheck_Elapsed(object sender, ElapsedEventArgs e)
-        {
             Dispatcher.Invoke(() =>
             {
-                if (Mouse.LeftButton == MouseButtonState.Pressed)
+                axisAngleRotation3Ds[1].Angle += 0.05;
+                if (VisualTreeHelper.HitTest(viewport, Mouse.GetPosition(viewport)) is RayMeshGeometry3DHitTestResult result)
                 {
-                    PerspectiveCamera perspectiveCamera = (PerspectiveCamera)viewport.Camera;
-                    double r = Math.Sqrt(Math.Pow(perspectiveCamera.Position.X, 2) + Math.Pow(perspectiveCamera.Position.Y, 2) + Math.Pow(perspectiveCamera.Position.Z, 2));
-                    axisAngleRotation3Ds[1].Angle += Mouse.GetPosition(viewport).X - buffer.X;
-                    axisAngleRotation3Ds[0].Angle -= Mouse.GetPosition(viewport).Y - buffer.Y;
-                    buffer = Mouse.GetPosition(viewport);
+                    GeometryModel3D model = (GeometryModel3D)result.ModelHit;
+                    if (highlighted != model)
+                    {
+                        if (highlighted != null)
+                        {
+                            (highlighted.Material as MaterialGroup).Children.RemoveAt((highlighted.Material as MaterialGroup).Children.Count() - 1);
+                        }
+                        (model.Material as MaterialGroup).Children.Add(new DiffuseMaterial(Brushes.Red));
+                        highlighted = model;
+                    }
                 }
                 else
                 {
-                    MouseMovedCheck.Stop();
-                    passiveRotate.Start();
+                    if (highlighted != null)
+                    {
+                        (highlighted.Material as MaterialGroup).Children.RemoveAt((highlighted.Material as MaterialGroup).Children.Count() - 1);
+                        highlighted = null;
+                    }
                 }
             });
         }
 
         private void Canvas_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            Dispatcher.Invoke(() =>
+            passiveRotate.Stop();
+            mouseLast = e.GetPosition(viewport);
+        }
+
+        private void Canvas_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed && (drag || Math.Pow(e.GetPosition(viewport).X - mouseLast.X, 2) + Math.Pow(e.GetPosition(viewport).Y - mouseLast.Y, 2) > 100))
             {
-                passiveRotate.Stop();
-                buffer = e.GetPosition(viewport);
-                MouseMovedCheck.Start();
-            });
+                if (!drag)
+                {
+                    drag = true;
+                }
+                else
+                {
+                    axisAngleRotation3Ds[1].Angle += e.GetPosition(viewport).X - mouseLast.X;
+                    axisAngleRotation3Ds[0].Angle -= e.GetPosition(viewport).Y - mouseLast.Y;
+                }
+                mouseLast = e.GetPosition(viewport);
+            }
+        }
+
+        private void Canvas_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (!drag && VisualTreeHelper.HitTest(viewport, e.GetPosition(viewport)) is RayMeshGeometry3DHitTestResult result)
+            {
+                Star.StarInfo starinfo = galexy.StarClicked(result.ModelHit as GeometryModel3D);
+                starinfoLable.Content = $"ID: {starinfo.name}\nSize: {starinfo.radius}\nPosition: [{starinfo.center.X}, {starinfo.center.Y}]";
+            }
+            drag = false;
+            passiveRotate.Start();
         }
 
         private void Canvas_MouseWheel(object sender, MouseWheelEventArgs e)
         {
-            Dispatcher.Invoke(() =>
-            {
-                PerspectiveCamera perspectiveCamera = (PerspectiveCamera)viewport.Camera;
-                double r = Math.Sqrt(Math.Pow(perspectiveCamera.Position.X, 2) + Math.Pow(perspectiveCamera.Position.Y, 2) + Math.Pow(perspectiveCamera.Position.Z, 2));
-                double ratio = r / (r + e.Delta / 100);
-                ((PerspectiveCamera)viewport.Camera).Position = new Point3D(ratio * perspectiveCamera.Position.X, ratio * perspectiveCamera.Position.Y, ratio * perspectiveCamera.Position.Z);
-            });
+            PerspectiveCamera perspectiveCamera = (PerspectiveCamera)viewport.Camera;
+            double r = Math.Sqrt(Math.Pow(perspectiveCamera.Position.X, 2) + Math.Pow(perspectiveCamera.Position.Y, 2) + Math.Pow(perspectiveCamera.Position.Z, 2));
+            double ratio = r / (r + e.Delta / 100);
+            ((PerspectiveCamera)viewport.Camera).Position = new Point3D(ratio * perspectiveCamera.Position.X, ratio * perspectiveCamera.Position.Y, ratio * perspectiveCamera.Position.Z);
         }
 
         private void Window_Closed(object sender, EventArgs e)
         {
-            Dispatcher.Invoke(() => passiveRotate.Stop());
+            passiveRotate.Stop();
         }
     }
 }
